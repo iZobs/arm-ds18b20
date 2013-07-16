@@ -26,6 +26,8 @@
 #define DEVICE_NAME "DS18B20"
 #define DS18B20_MAJOR 32
 
+#define DEBUG 0
+
 static int ds18b20_major;
 static unsigned char data[2]= {0x00,0x00};
 
@@ -43,7 +45,10 @@ static unsigned char init_ds18b20(void)
     ret = s3c2410_gpio_getpin(DQ);
     udelay(400);
 
+    #if DEBUG
     printk("kernel:init ds18b20 is called,ret is %d\n",ret);
+    #endif
+
     return ret;
 }
 
@@ -91,7 +96,10 @@ static unsigned char read_a_byte(void)
         data >>= 1;
         if(s3c2410_gpio_getpin(DQ))
         {
+            #if DEBUG
             printk("kernel:get_pin is %d\n",s3c2410_gpio_getpin(DQ));
+            #endif
+
             data |= 0x80;                   /*从高位读开始读*/
         }
         s3c2410_gpio_setpin(DQ,1);
@@ -112,7 +120,9 @@ int open_ds18b20(struct inode *inode, struct file *filp)
 static ssize_t read_ds18b20(struct file *filp, char __user *buf, size_t size,loff_t *ppos)
 {
     unsigned long err;
+    #if DEBUG
     printk("kernel:read_ds18b20 is called\n");
+    #endif
 
     init_ds18b20();
     write_a_byte(0xcc); /*跳过读序列号操作*/
@@ -127,7 +137,11 @@ static ssize_t read_ds18b20(struct file *filp, char __user *buf, size_t size,lof
     data[1] = read_a_byte(); /*高位*/
 
     err = copy_to_user(buf,&data,sizeof(data));  /*将数据考贝到应用层*/
+
+    #if DEBUG
     printk("kernel:data[0] is %x,data[1] is %x\n",data[0],data[1]);
+    #endif
+
     return err ? -EFAULT :min(sizeof(data),size);
 }
 
