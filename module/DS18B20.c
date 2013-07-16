@@ -33,20 +33,21 @@ static unsigned char init_ds18b20(void)
 {
     unsigned int ret = 1;
     s3c2410_gpio_cfgpin(DQ,CPG_OUT); /*配置pin为输出*/
-    s3c2410_gpio_pullup(DQ,1);
-    s3c2410_gpio_setpin(DQ,0);
+    s3c2410_gpio_pullup(DQ,1);       /*拉高DQ口,为下面拉低准备*/
+    s3c2410_gpio_setpin(DQ,0);      
     udelay(480);
-    s3c2410_gpio_setpin(DQ,1); /*将18b20总线拉高，以便在15-60us后接送18b20的脉冲*/
+    s3c2410_gpio_setpin(DQ,1);       /*将18b20总线拉高，以便在15-60us后接送18b20的脉冲*/
     udelay(100);
 
-    s3c2410_gpio_cfgpin(DQ,CPG_IN);
+    s3c2410_gpio_cfgpin(DQ,CPG_IN); /*配置DQ为输出*/
     ret = s3c2410_gpio_getpin(DQ);
     udelay(400);
 
     printk("kernel:init ds18b20 is called,ret is %d\n",ret);
     return ret;
 }
-//写一个字节
+
+/*写一个字节*/
 
 static void write_a_byte(unsigned char data)
 {
@@ -59,7 +60,7 @@ static void write_a_byte(unsigned char data)
         s3c2410_gpio_setpin(DQ,0);
         udelay(2);
 
-        if(data&0x01)
+        if(data&0x01)                 /*取出data的低位写入*/
             s3c2410_gpio_setpin(DQ,1);
         else
             s3c2410_gpio_setpin(DQ,0);
@@ -91,19 +92,16 @@ static unsigned char read_a_byte(void)
         if(s3c2410_gpio_getpin(DQ))
         {
             printk("kernel:get_pin is %d\n",s3c2410_gpio_getpin(DQ));
-            data |= 0x80;
+            data |= 0x80;                   /*从高位读开始读*/
         }
-
         s3c2410_gpio_setpin(DQ,1);
         udelay(70);
     }
     return data;
 }
 
-int open_ds18b20(struct inode *inode, struct file *filp)          //inode便是设备节点
+int open_ds18b20(struct inode *inode, struct file *filp)     
 {
-    /*将设备结构体指针赋值给文件私有数据指针,private_data可以存放任何数据*/
-
     if(init_ds18b20()>0)
           printk("kernel:init_ds18b20 failed\n");
     else
@@ -128,7 +126,7 @@ static ssize_t read_ds18b20(struct file *filp, char __user *buf, size_t size,lof
     data[0] = read_a_byte(); /*低位*/
     data[1] = read_a_byte(); /*高位*/
 
-    err = copy_to_user(buf,&data,sizeof(data));
+    err = copy_to_user(buf,&data,sizeof(data));  /*将数据考贝到应用层*/
     printk("kernel:data[0] is %x,data[1] is %x\n",data[0],data[1]);
     return err ? -EFAULT :min(sizeof(data),size);
 }
