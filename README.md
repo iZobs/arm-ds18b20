@@ -6,6 +6,6 @@
 
 ###使用:
 
-> git clone git://gitcafe.com/iZobs/TQ2440-at24c02.git 
+> git clone https://github.com/iZobs/arm-ds18b20.git 
 
 
